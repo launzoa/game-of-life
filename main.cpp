@@ -1,12 +1,18 @@
 #include "raylib.h"
 #include <iostream>
 #include <vector>
+
+#if defined(PLATFORM_WEB)
+    #include <emscripten/emscripten.h>
+#endif
+
 using namespace std;
 
-const int SCREEN_WIDTH = 1920; // Tamanho da largura da tela 
-const int SCREEN_HEIGHT = 1200; // Tamanho da altura da tela
 
-const int CELL_SIZE = 80; // Tamanho de cada "bloco" do grid
+const int SCREEN_WIDTH = 1280; // Tamanho da largura da tela 
+const int SCREEN_HEIGHT = 720; // Tamanho da altura da tela
+
+const int CELL_SIZE = 40; // Tamanho de cada "bloco" do grid
 const int GRID_COLS = SCREEN_WIDTH / CELL_SIZE; // Número de colunas do grid 
 const int GRID_ROWS = SCREEN_HEIGHT / CELL_SIZE; // Número de linhas do grid
 
@@ -15,14 +21,33 @@ enum class CellState { // Estados da FSM
     ALIVE = 1 // 1 => vivo
 };
 
+void updateDrawFrame();
 void updateSimulation(vector<vector<CellState>>& current_grid);
 CellState getNextState(CellState current, int neighbors);
 int countAliveNeighbor(const vector<vector<CellState>>& grid, int row, int col);
 
 int main() {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Conway's Game of Life"); // Inicializa a tela
-    SetTargetFPS(60); // Seta o FPS 
 
+    #if defined(PLATFORM_WEB) 
+        emscripten_set_main_loop(updateDrawFrame, 0, 1);
+    #else 
+        SetTargetFPS(60); // Seta o FPS 
+        while (!WindowShouldClose()) {
+            updateDrawFrame();
+        }
+    #endif
+
+    CloseWindow();
+    return 0;
+}
+
+
+void updateDrawFrame() {
+    /*
+    @brief Função central para realizar todo o jogo. Normalmente era contida na main, no entanto com o emsdk para webAssembly, se faz necessário
+           dividi-la em uma função própria
+    */
     vector<vector<CellState>> grid(GRID_ROWS, vector<CellState>(GRID_COLS, CellState::DEAD)); // Matriz para armazenar as células vivas e mortas
     
     bool isRunning = false; // Flag para manter o jogo rodando ou pausado
@@ -99,18 +124,14 @@ int main() {
             }
 
             // Desenhar a HUD do jogo
-            DrawText("Espaço: Iniciar/Pausar", 30, 20, 30, BLACK); 
-            if (isRunning) DrawText("Rodando", SCREEN_WIDTH - 150, 20, 30, BLUE);
-            else DrawText("Pausado", SCREEN_WIDTH - 150, 20, 30, RED); 
-            DrawText("Enter: Avançar geração (pausado)", 30, 60, 30, BLACK);
-            DrawText("C: Limpar tela", 30, 100, 30, BLACK);
+            DrawText("Espaço: Iniciar/Pausar", 20, 15, 20, BLACK); 
+            if (isRunning) DrawText("Rodando", SCREEN_WIDTH - 100, 10, 20, BLUE);
+            else DrawText("Pausado", SCREEN_WIDTH - 100, 10, 20, RED); 
+            DrawText("Enter: Avançar geração (pausado)", 20, 50, 20, BLACK);
+            DrawText("C: Limpar tela", 20, 85, 20, BLACK);
             
         EndDrawing(); // Termina de desenhar
     }
-
-    CloseWindow(); // Fecha a janela
-
-    return 0;
 }
 
 
